@@ -2,12 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base
-
 images:
   - name: node-k8s-app
     newName: mar97/node-k8s-app
-    newTag: latest
-
+    newTag: 9e4fea7
 replicas:
-  - name: node-app 
-    count: 3 
+  - name: node-app
+    count: 3
