@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: node-app
+  name: node-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: node-app
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: node-app
+    spec:
+      containers:
+      - image: mar97/node-k8s-app
+        name: node-k8s-app
+        resources: {}
+status: {}

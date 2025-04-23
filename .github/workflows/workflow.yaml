@@ -1,0 +1,98 @@
+name: Deploy to Dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      MS_NAME:
+        description: 'Microservice name'
+        required: true
+      MS_VERSION:
+        description: 'Microservice version'
+        required: true
+  # For receiving triggers from other workflows/pipelines
+  repository_dispatch:
+    types: [deploy-node-app]
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          
+      - name: Install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+          
+      - name: Configure Git
+        run: |
+          git config --global user.name "mohamedAmrawey97"
+          git config --global user.email "mohamed.amrawey97@gmail.com"
+          
+      - name: Check if kustomization file exists
+        run: |
+          if [ ! -f "overlays/dev/kustomization.yaml" ]; then
+            echo "Error: File overlays/dev/kustomization.yaml does not exist!"
+            echo "Current directory structure:"
+            find . -type f -name "*.yaml" | sort
+            exit 1
+          else
+            echo "Found kustomization file at overlays/dev/kustomization.yaml"
+            echo "Current content:"
+            cat overlays/dev/kustomization.yaml
+          fi
+          
+      - name: Update kustomization file
+        run: |
+          # Set variables based on event type
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # For manual workflow runs
+            MS_NAME="${{ github.event.inputs.MS_NAME }}"
+            MS_VERSION="${{ github.event.inputs.MS_VERSION }}"
+          else
+            # For the deploy-node-app repository_dispatch event
+            DOCKER_REPO="${{ github.event.client_payload.docker_repo }}"
+            MS_NAME="${{ github.event.client_payload.image_name }}"
+            MS_VERSION="${{ github.event.client_payload.image_version }}"
+          fi
+          
+          echo "Updating image $MS_NAME to version $MS_VERSION"
+          
+          # Update the kustomization.yaml file
+          yq -i "(.images[] | select(.name == \"$MS_NAME\") | .newTag) = \"$MS_VERSION\"" overlays/dev/kustomization.yaml
+          
+          echo "Updated content:"
+          cat overlays/dev/kustomization.yaml
+          
+      - name: Commit and push changes
+        run: |
+          # Set variables based on event type
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # For manual workflow runs
+            MS_NAME="${{ github.event.inputs.MS_NAME }}"
+            MS_VERSION="${{ github.event.inputs.MS_VERSION }}"
+          else
+            # For the deploy-node-app repository_dispatch event
+            MS_NAME="${{ github.event.client_payload.image_name }}"
+            MS_VERSION="${{ github.event.client_payload.image_version }}"
+          fi
+          
+          # Add the file to git
+          git add overlays/dev/kustomization.yaml
+          
+          # Only commit and push if there are changes
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update $MS_NAME to version $MS_VERSION"
+            
+            echo "Pushing changes to repository..."
+            # Push with authentication token
+            echo ${{ secrets.SECRET_TOKEN }}
+            git remote set-url origin https://mohamedAmrawey97:${{ secrets.SECRET_TOKEN }}@github.com/mohamedAhmed97/node-app-gitOps.git
+            git push origin main
+          fi
