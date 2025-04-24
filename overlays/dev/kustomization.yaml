@@ -5,7 +5,7 @@ resources:
 images:
   - name: node-k8s-app
     newName: mar97/node-k8s-app
-    newTag: 9e4fea7
+    newTag: 084a5be
 replicas:
   - name: node-app
     count: 3
