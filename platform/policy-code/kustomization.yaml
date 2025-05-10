@@ -4,4 +4,5 @@ resources:
 - block-node-port-template.yaml
 - block-node-port.yaml
 - require-container-resource-template.yaml
+- container-cpu-requests-memory-limits.yaml
   
